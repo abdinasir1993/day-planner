@@ -37,8 +37,6 @@ const workingHours = [
     },
   ];
   
-  //accessing date and time
-  const currentDateStamp = moment();
   
   const renderDate = () => {
     return moment().format("ddd, MMMM, YYYY HH:mm");
@@ -52,23 +50,43 @@ const workingHours = [
   
   $("#currentDay").text(renderDate);
   
-  $("#saveBtn").click(function () {
-    console.log("button clicked");
-  });
-  
-  const getEventForTimeBlock = (workingHour) => {};
-  
+  const getEventForTimeBlock = (hour) => {
+    let tasks = readFromLocalStorage("planner", workingHours);
+    // get task by hour from LS
+    let task = tasks[hour];
+    if (task == undefined) {
+      task = "";
+      return task;
+    }
+    return task;
+  };
+  const getClassName = (workingHour) => {
+    const currentHour = moment().hour();
+    //if workingHour is present
+    if (workingHour === currentHour) {
+      return "present";
+    }
+    //if workingHour is future
+    if (workingHour > currentHour) {
+      return "future";
+    }
+    return "past";
+    //else past
+  };
+  const timeBlocks = $("#time-blocks");
   const renderTimeBlocks = () => {
     //for each working hour create and append time block to time-blocks
-    const timeBlocks = $("#time-blocks");
+    
     const renderTimeBlock = (workingHour) => {
       console.log(workingHour);
       //create timeblock
-      const timeBlock = `<div class="row p-2">
+      const timeBlock = `<div class="row p-2 my-2 ${getClassName(
+        workingHour.key
+      )}">
         <div class="col-md-1 col-sm-12 text-center my-1 d-flex flex-column justify-content-center">${
           workingHour.label
         }</div>
-        <textarea class="col-md-9 col-sm-12" rows="3">${getEventForTimeBlock(
+        <textarea class="col-md-9 col-sm-12"  rows="3" data-textarea-key=${workingHour.key}>${getEventForTimeBlock(
           workingHour.key
         )}</textarea>
         <div class="col-md-2 col-sm-12 text-center my-1 d-flex flex-column justify-content-center">
@@ -83,10 +101,44 @@ const workingHours = [
     };
     workingHours.forEach(renderTimeBlock);
   };
+  const readFromLocalStorage = (key, defaultValue) => {
+    // get from LS using key name
+    const dataFromLS = localStorage.getItem(key);
   
+    // parse data from LS
+    const parsedData = JSON.parse(dataFromLS);
+  
+    if (parsedData) {
+      return parsedData;
+    } else {
+      return defaultValue;
+    }
+  };
+  
+  const writeToLocalStorage = (key, value) => {
+    // convert value to string
+    const stringifiedValue = JSON.stringify(value);
+  
+    // set stringified value to LS for key name
+    localStorage.setItem(key, stringifiedValue);
+  };
+  const saveToLocalStorage = (event) => {
+    const target = $(event.target);
+    if (target.is("button")) {
+      console.log("click");
+      const key = target.attr("data-hour");
+      console.log(key);
+      const value = $(`textarea[data-textarea-key=${key}]`).val();
+      console.log(value);
+      const planner = readFromLocalStorage("planner", {});
+      planner[key] = value;
+      writeToLocalStorage("planner", planner);
+    }
+  };
   const onReady = () => {
     console.log("ready");
     renderTimeBlocks();
+    readFromLocalStorage()
   };
-  
+  timeBlocks.click(saveToLocalStorage)
   $(document).ready(onReady);
